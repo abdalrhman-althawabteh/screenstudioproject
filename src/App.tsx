@@ -1,216 +1,164 @@
-import React, { useState } from 'react';
-import { RecordingControls } from './components/RecordingControls';
-import { SettingsPanel } from './components/SettingsPanel';
-import { useScreenRecorder } from './hooks/useScreenRecorder';
-import { RecordingSettings } from './types';
+import { useState, useRef } from 'react';
+import './App.css';
 
-export function App() {
-  const [settings, setSettings] = useState<RecordingSettings>({
-    fps: 60,
-    quality: 'high',
-    cursorEffects: true,
-    autoZoom: true,
-    backgroundPadding: 40,
-    backgroundColor: '#1a1a1a',
-    cursorGlow: true,
-    smoothCursor: true,
-  });
+const WEBHOOK_URL = 'https://n8n.srv965433.hstgr.cloud/webhook/d6809865-6310-4416-a351-3e14de3540cf';
 
-  const {
-    isRecording,
-    isPaused,
-    recordingTime,
-    startRecording,
-    stopRecording,
-    pauseRecording,
-  } = useScreenRecorder();
+function App() {
+  const [isRecording, setIsRecording] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [transcription, setTranscription] = useState('');
+  const [error, setError] = useState('');
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
-  const handleStart = async () => {
+  const startRecording = async () => {
     try {
-      await startRecording(settings);
-    } catch (error) {
-      console.error('Failed to start recording:', error);
-      alert('Failed to start recording. Please make sure you granted screen sharing permission.');
+      setError('');
+      setTranscription('');
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        await sendToWebhook(audioBlob);
+
+        // Stop all tracks
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (err) {
+      setError('فشل الوصول للميكروفون. الرجاء السماح بالوصول للميكروفون.');
+      console.error('Error accessing microphone:', err);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      setIsProcessing(true);
+    }
+  };
+
+  const sendToWebhook = async (audioBlob: Blob) => {
+    try {
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'recording.webm');
+
+      const response = await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('فشل إرسال الملف الصوتي');
+      }
+
+      const result = await response.json();
+
+      // Handle the response - assuming the webhook returns transcription in 'text' or 'transcription' field
+      if (result.text || result.transcription) {
+        setTranscription(result.text || result.transcription);
+      } else if (typeof result === 'string') {
+        setTranscription(result);
+      } else {
+        setTranscription(JSON.stringify(result, null, 2));
+      }
+
+      setIsProcessing(false);
+    } catch (err) {
+      setError('حدث خطأ أثناء معالجة الصوت. حاول مرة أخرى.');
+      setIsProcessing(false);
+      console.error('Error sending audio:', err);
     }
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: '#1a1a1a',
-      padding: '24px',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    }}>
-      {/* Header */}
-      <div style={{
-        marginBottom: '32px',
-        textAlign: 'center',
-      }}>
-        <h1 style={{
-          margin: 0,
-          fontSize: '32px',
-          fontWeight: 'bold',
-          color: '#fff',
-          marginBottom: '8px',
-        }}>
-          Screen Studio Recorder
-        </h1>
-        <p style={{
-          margin: 0,
-          fontSize: '16px',
-          color: '#888',
-        }}>
-          Professional screen recording with AI-powered zoom and cursor tracking
-        </p>
-      </div>
+    <div className="app">
+      <div className="container">
+        <div className="header">
+          <h1>🎙️ تحويل الصوت إلى نص</h1>
+          <p className="subtitle">اضغط على الميكروفون وابدأ التحدث</p>
+        </div>
 
-      {/* Main Content */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: window.innerWidth > 900 ? '1fr 400px' : '1fr',
-        gap: '24px',
-        maxWidth: '1400px',
-        margin: '0 auto',
-      }}>
-        {/* Left Column */}
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '24px',
-        }}>
-          {/* Recording Controls */}
-          <RecordingControls
-            isRecording={isRecording}
-            isPaused={isPaused}
-            recordingTime={recordingTime}
-            onStart={handleStart}
-            onStop={stopRecording}
-            onPause={pauseRecording}
-          />
+        <div className="recorder-section">
+          <button
+            className={`mic-button ${isRecording ? 'recording' : ''} ${isProcessing ? 'processing' : ''}`}
+            onClick={isRecording ? stopRecording : startRecording}
+            disabled={isProcessing}
+          >
+            {isProcessing ? (
+              <div className="spinner"></div>
+            ) : (
+              <svg
+                className="mic-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                <line x1="12" y1="19" x2="12" y2="23"></line>
+                <line x1="8" y1="23" x2="16" y2="23"></line>
+              </svg>
+            )}
+          </button>
 
-          {/* Instructions */}
-          {!isRecording && (
-            <div style={{
-              padding: '20px',
-              backgroundColor: '#2a2a2a',
-              borderRadius: '12px',
-              border: '2px solid #3B82F6',
-            }}>
-              <h3 style={{
-                margin: '0 0 12px 0',
-                color: '#3B82F6',
-                fontSize: '18px',
-              }}>
-                How to use:
-              </h3>
-              <ol style={{
-                margin: 0,
-                paddingLeft: '20px',
-                color: '#fff',
-                fontSize: '14px',
-                lineHeight: '1.6',
-              }}>
-                <li>Configure your recording settings in the panel →</li>
-                <li>Click "Start Recording" button</li>
-                <li>Select the screen or window you want to record</li>
-                <li>Click "Share" to begin recording</li>
-                <li>Move your cursor naturally - AI will track and zoom automatically</li>
-                <li>Click "Stop" when finished - video will download automatically</li>
-              </ol>
+          <p className="status-text">
+            {isProcessing
+              ? 'جاري المعالجة...'
+              : isRecording
+              ? 'جاري التسجيل... اضغط مرة أخرى للإيقاف'
+              : 'اضغط للبدء'}
+          </p>
+
+          {isRecording && (
+            <div className="recording-indicator">
+              <span className="pulse"></span>
+              <span>جاري التسجيل</span>
             </div>
           )}
+        </div>
 
-          {/* Features Info */}
-          <div style={{
-            padding: '20px',
-            backgroundColor: '#2a2a2a',
-            borderRadius: '12px',
-          }}>
-            <h3 style={{
-              margin: '0 0 16px 0',
-              color: '#fff',
-              fontSize: '18px',
-            }}>
-              Features
-            </h3>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: window.innerWidth > 600 ? '1fr 1fr' : '1fr',
-              gap: '12px',
-            }}>
-              {[
-                '🎯 Cursor Tracking',
-                '✨ Smooth Cursor Effects',
-                '🔍 AI-Powered Zoom',
-                '📹 Auto Camera Movements',
-                '🎨 Custom Backgrounds',
-                '📐 Padding & Spacing',
-                '🎬 High-Quality Export',
-                '⚡ 60 FPS Recording',
-              ].map((feature, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    padding: '12px',
-                    backgroundColor: '#1a1a1a',
-                    borderRadius: '8px',
-                    color: '#fff',
-                    fontSize: '14px',
-                  }}
-                >
-                  {feature}
-                </div>
-              ))}
+        {error && (
+          <div className="message error">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <p>{error}</p>
+          </div>
+        )}
+
+        {transcription && (
+          <div className="message success">
+            <div className="transcription-header">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <h3>النص المحول:</h3>
             </div>
+            <div className="transcription-text">{transcription}</div>
           </div>
-
-          {/* Browser Compatibility Note */}
-          <div style={{
-            padding: '16px',
-            backgroundColor: '#2a2a2a',
-            borderRadius: '12px',
-            borderLeft: '4px solid #F59E0B',
-          }}>
-            <p style={{
-              margin: 0,
-              color: '#F59E0B',
-              fontSize: '14px',
-              fontWeight: 'bold',
-              marginBottom: '4px',
-            }}>
-              Browser Requirements:
-            </p>
-            <p style={{
-              margin: 0,
-              color: '#888',
-              fontSize: '12px',
-            }}>
-              Works best in Chrome, Edge, or Opera. Firefox and Safari have limited support for screen recording.
-            </p>
-          </div>
-        </div>
-
-        {/* Right Column - Settings */}
-        <div>
-          <SettingsPanel
-            settings={settings}
-            onSettingsChange={setSettings}
-            disabled={isRecording}
-          />
-        </div>
+        )}
       </div>
-
-      {/* CSS Animation */}
-      <style>{`
-        @keyframes pulse {
-          0%, 100% {
-            opacity: 1;
-          }
-          50% {
-            opacity: 0.3;
-          }
-        }
-      `}</style>
     </div>
   );
 }
+
+export default App;
