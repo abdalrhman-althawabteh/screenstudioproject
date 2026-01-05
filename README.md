@@ -1,95 +1,107 @@
-# Screen Studio Recorder
+# تطبيق تحويل الصوت إلى نص - Speech to Text App
 
-A professional screen recording application with AI-powered features similar to Screen Studio.
+تطبيق ويب احترافي لتحويل الصوت إلى نص باستخدام تقنية n8n webhook.
 
-## Features
+## المميزات
 
-### 🎯 Core Features
-- **Screen Recording**: Capture your screen or specific windows in high quality
-- **Audio Recording**: Record system audio alongside your screen
-- **60 FPS Support**: Smooth, high frame rate recordings
+### ✨ المميزات الأساسية
+- **تسجيل صوتي**: سجل صوتك مباشرة من المتصفح
+- **تحويل فوري**: تحويل الصوت إلى نص بشكل فوري
+- **واجهة عربية**: واجهة مستخدم جميلة تدعم اللغة العربية بشكل كامل
+- **تصميم متجاوب**: يعمل على جميع الأجهزة (موبايل، تابلت، كمبيوتر)
 
-### ✨ Advanced Features
-- **Cursor Tracking**: Intelligent cursor position tracking throughout the recording
-- **Smooth Cursor Effects**: Professional-looking animated cursor with glow effects
-- **Cursor Trail**: Visual trail following cursor movements
-- **AI-Powered Auto Zoom**: Automatically zooms in on detailed work and zooms out during navigation
-  - Detects cursor movement speed and patterns
-  - Zooms in when you're doing detailed work (slow movements)
-  - Zooms out when navigating (fast movements)
-- **Automatic Camera Movements**: Smooth zoom and pan effects that follow your cursor
-- **Background & Padding**: Customizable backgrounds with adjustable padding around content
-- **High-Quality Export**: Exports in WebM format with VP9 codec for optimal quality
+### 🎨 التصميم
+- واجهة مستخدم حديثة وجذابة
+- تأثيرات حركية سلسة
+- ألوان متدرجة جميلة
+- تجربة مستخدم سهلة وبسيطة
 
-### 🎨 Customization
-- Adjustable FPS (30 or 60)
-- Video quality settings (Standard 5Mbps or High 8Mbps)
-- Custom background colors
-- Adjustable padding (0-100px)
-- Toggle cursor effects on/off
-- Toggle AI zoom on/off
-
-## Installation
+## التثبيت والتشغيل
 
 ```bash
-# Install dependencies
+# تثبيت المكتبات
 npm install
 
-# Run in development mode
+# تشغيل في وضع التطوير
 npm run dev
 
-# Build for production
+# بناء للإنتاج
 npm run build
 
-# Package the app
-npm run package
+# معاينة النسخة الإنتاجية
+npm preview
 ```
 
-## Usage
+## كيفية الاستخدام
 
-1. **Select Source**: Choose the screen or window you want to record
-2. **Configure Settings**: Adjust recording settings in the right panel
-   - Enable/disable cursor effects
-   - Enable/disable AI-powered zoom
-   - Adjust background padding and color
-   - Choose video quality
-3. **Start Recording**: Click "Start Recording" button
-4. **Control Recording**: Use Pause/Resume and Stop buttons
-5. **Export**: Recording automatically saves as WebM file when stopped
+1. **اضغط على زر الميكروفون** لبدء التسجيل
+2. **ابدأ التحدث** - سيتم تسجيل صوتك تلقائياً
+3. **اضغط مرة أخرى** لإيقاف التسجيل
+4. **انتظر المعالجة** - سيتم إرسال الصوت إلى n8n للمعالجة
+5. **اقرأ النتيجة** - سيظهر النص المحول في الواجهة
 
-## How It Works
+## التكامل مع n8n
 
-### Cursor Tracking
-The app tracks cursor position at 60fps and stores recent positions to create smooth cursor effects and trails.
+التطبيق متصل مع webhook على n8n:
+```
+https://n8n.srv965433.hstgr.cloud/webhook/d6809865-6310-4416-a351-3e14de3540cf
+```
 
-### AI-Powered Zoom
-The zoom algorithm analyzes cursor movement patterns:
-- **Slow movements** (< 5px average): Zoom in to 1.3x - indicates detailed work
-- **Fast movements** (> 20px average): Zoom out to 1.0x - indicates navigation
-- **Medium movements**: Slight zoom to 1.15x - balanced view
+### كيف يعمل التكامل:
+1. يسجل التطبيق الصوت من الميكروفون
+2. يحول الصوت إلى ملف WebM
+3. يرسل الملف إلى webhook على n8n
+4. ينتظر الاستجابة من n8n مع النص المحول
+5. يعرض النص في واجهة جميلة
 
-The zoom transitions are smoothed using linear interpolation for professional-looking camera movements.
+### صيغة الاستجابة المتوقعة:
+يجب أن يرجع webhook استجابة JSON بإحدى الصيغ التالية:
 
-### Canvas Rendering
-- Uses HTML5 Canvas to composite the screen recording with effects
-- Applies real-time transformations for zoom and pan
-- Renders cursor effects including glow and trail
-- Adds background padding and custom colors
+```json
+{
+  "text": "النص المحول هنا"
+}
+```
 
-## Technical Stack
+أو
 
-- **Electron**: Desktop application framework
-- **React**: UI framework
-- **TypeScript**: Type-safe development
-- **Vite**: Fast build tool
-- **Canvas API**: Real-time video effects
-- **MediaRecorder API**: Screen capture and recording
+```json
+{
+  "transcription": "النص المحول هنا"
+}
+```
 
-## System Requirements
+## التقنيات المستخدمة
 
-- macOS 10.13+, Windows 10+, or Linux
-- 4GB RAM minimum (8GB recommended)
-- Modern CPU for smooth 60fps encoding
+- **React**: مكتبة JavaScript لبناء واجهات المستخدم
+- **TypeScript**: JavaScript مع الأنواع الثابتة
+- **Vite**: أداة بناء سريعة وحديثة
+- **MediaRecorder API**: لتسجيل الصوت من المتصفح
+- **Fetch API**: للتواصل مع webhook
+- **CSS3**: تصميم متقدم مع تأثيرات حركية
+
+## متطلبات المتصفح
+
+- **Chrome**: يعمل بشكل كامل ✅
+- **Edge**: يعمل بشكل كامل ✅
+- **Firefox**: يعمل بشكل كامل ✅
+- **Safari**: يعمل بشكل كامل ✅
+- **Opera**: يعمل بشكل كامل ✅
+
+يجب السماح للموقع بالوصول إلى الميكروفون عند الطلب.
+
+## الملفات الرئيسية
+
+- `src/App.tsx`: المكون الرئيسي للتطبيق
+- `src/App.css`: ملف التصميم
+- `src/main.tsx`: نقطة الدخول للتطبيق
+- `index.html`: ملف HTML الرئيسي
+
+## الأمان
+
+- لا يتم حفظ أي تسجيلات صوتية على السيرفر
+- جميع البيانات تُرسل مباشرة إلى webhook
+- يتطلب إذن المستخدم للوصول إلى الميكروفون
 
 ## License
 

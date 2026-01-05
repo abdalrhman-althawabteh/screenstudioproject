@@ -1,7 +1,7 @@
 {
-  "name": "screen-studio-recorder",
+  "name": "speech-to-text-app",
   "version": "1.0.0",
-  "description": "Professional screen recorder with AI-powered zoom, cursor tracking, and automatic camera movements",
+  "description": "Speech to text web application with n8n webhook integration",
   "type": "module",
   "scripts": {
     "dev": "vite",
